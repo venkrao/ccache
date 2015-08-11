@@ -31,6 +31,7 @@
 #include "hashutil.h"
 #include "language.h"
 #include "manifest.h"
+#include <curl/curl.h>
 
 #define STRINGIFY(x) #x
 #define TO_STRING(x) STRINGIFY(x)
@@ -693,7 +694,8 @@ put_file_in_cache(const char *source, const char *dest)
 		x_unlink(dest);
 		ret = link(source, dest);
 	} else {
-		ret = copy_file(source, dest, conf->compression);
+		//ret = copy_file(source, dest, conf->compression); //veraoks_debug
+		ret = curl_download_file(source, dest, conf->compression);
 	}
 	if (ret != 0) {
 		cc_log("Failed to %s %s to %s: %s",
@@ -723,7 +725,8 @@ get_file_from_cache(const char *source, const char *dest)
 		x_unlink(dest);
 		ret = link(source, dest);
 	} else {
-		ret = copy_file(source, dest, 0);
+		//ret = copy_file(source, dest, 0); //veraoks_debug
+		ret = curl_download_file(source, dest, 0);
 	}
 
 	if (ret == -1) {
@@ -3024,7 +3027,6 @@ ccache_main(int argc, char *argv[])
 		}
 	}
 	free(program_name);
-
 	ccache(argc, argv);
 	return 1;
 }

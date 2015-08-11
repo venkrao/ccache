@@ -33,6 +33,8 @@
 #include <sys/locking.h>
 #endif
 
+#include <curl/curl.h>
+
 static FILE *logfile;
 
 static bool
@@ -259,6 +261,45 @@ get_umask(void)
 }
 #endif
 
+size_t write_data(void *ptr, size_t size, size_t nmemb, FILE *stream) {
+    size_t written;
+    written = fwrite(ptr, size, nmemb, stream);
+    return written;
+}
+
+int
+curl_download_file(const char *src, const char *dest, int compress_level)
+{
+	extern struct conf *conf;
+    char *base_url = "http://step-blr-bit11:8000/ccache_cache_store";
+    char manifest_path[150];
+    char manifest_url[250];
+
+    manifest_url[0] = '\0';
+
+    strncpy(manifest_path, &src[strlen(conf->cache_dir)], strlen(src) - strlen(conf->cache_dir) + 1);
+    strcat(manifest_url, base_url);
+    strcat(manifest_url, manifest_path);
+
+    cc_log("veraoks_debug: curl downloading %s to %s\n", manifest_url, dest);
+
+    CURL *curl;
+    FILE *fp;
+    CURLcode res;
+    curl = curl_easy_init();
+
+    if ( curl ) {
+        fp = fopen(dest, "wb");
+        curl_easy_setopt(curl, CURLOPT_URL, manifest_url);
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
+        res = curl_easy_perform(curl);
+        curl_easy_cleanup(curl);
+        fclose(fp);
+    }
+    cc_log("veraoks_debug: curl downloaded %s to %s\n", manifest_url, dest);
+    return 0;
+}
 /*
  * Copy src to dest, decompressing src if needed. compress_level > 0 decides
  * whether dest will be compressed, and with which compression level. Returns 0
