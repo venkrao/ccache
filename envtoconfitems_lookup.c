@@ -1,4 +1,4 @@
-/* ANSI-C code produced by gperf version 3.0.4 */
+/* ANSI-C code produced by gperf version 3.0.1 */
 /* Command-line: gperf envtoconfitems.gperf  */
 /* Computed positions: -k'1,5' */
 
@@ -54,7 +54,7 @@ envtoconfitems_hash (register const char *str, register unsigned int len)
       43, 43, 43, 43, 43, 43, 20,  0,  0, 10,
       20, 43, 15, 43, 10, 43,  5, 10, 15,  0,
        5, 10,  5,  0,  0,  0, 43, 43, 43, 43,
-      10, 43, 43, 43, 43, 43, 43, 43, 43, 43,
+      10, 43, 43, 43, 43, 43,  0, 43, 43, 43,
       43, 43, 43, 43, 43, 43, 43, 43, 43, 43,
       43, 43, 43, 43, 43, 43, 43, 43, 43, 43,
       43, 43, 43, 43, 43, 43, 43, 43, 43, 43,
@@ -89,19 +89,15 @@ envtoconfitems_hash (register const char *str, register unsigned int len)
   return hval;
 }
 
-static
 #ifdef __GNUC__
 __inline
-#if defined __GNUC_STDC_INLINE__ || defined __GNUC_GNU_INLINE__
-__attribute__ ((__gnu_inline__))
-#endif
 #endif
 const struct env_to_conf_item *
 envtoconfitems_get (register const char *str, register unsigned int len)
 {
   enum
     {
-      TOTAL_KEYWORDS = 27,
+      TOTAL_KEYWORDS = 28,
       MIN_WORD_LENGTH = 2,
       MAX_WORD_LENGTH = 15,
       MIN_HASH_VALUE = 2,
@@ -134,7 +130,8 @@ envtoconfitems_get (register const char *str, register unsigned int len)
       {"RECACHE", "recache"},
 #line 15 "envtoconfitems.gperf"
       {"COMPRESSLEVEL", "compression_level"},
-      {"",""},
+#line 38 "envtoconfitems.gperf"
+      {"REPO_PATH", "cache_repo_path"},
 #line 37 "envtoconfitems.gperf"
       {"UNIFY", "unify"},
       {"",""},
@@ -190,4 +187,4 @@ envtoconfitems_get (register const char *str, register unsigned int len)
     }
   return 0;
 }
-static const size_t ENVTOCONFITEMS_TOTAL_KEYWORDS = 27;
+static const size_t ENVTOCONFITEMS_TOTAL_KEYWORDS = 28;

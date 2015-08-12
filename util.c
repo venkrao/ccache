@@ -268,13 +268,14 @@ size_t write_data(void *ptr, size_t size, size_t nmemb, FILE *stream) {
 }
 
 int
-curl_download_file(const char *src, const char *dest, int compress_level)
+curl_download_file(const char *src, const char *dest)
 {
 	extern struct conf *conf;
-    char *base_url = "http://step-blr-bit11:8000/ccache_cache_store";
+    char *base_url = conf->cache_repo_path;
     char manifest_path[150];
     char manifest_url[250];
 
+    int curl_download_status = 0;
     manifest_url[0] = '\0';
 
     strncpy(manifest_path, &src[strlen(conf->cache_dir)], strlen(src) - strlen(conf->cache_dir) + 1);
@@ -294,11 +295,15 @@ curl_download_file(const char *src, const char *dest, int compress_level)
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
         res = curl_easy_perform(curl);
+        if ( res == 78 ) {
+            // CURLE_REMOTE_FILE_NOT_FOUND file not found, that is.
+            curl_download_status = -1;
+        }
         curl_easy_cleanup(curl);
         fclose(fp);
     }
-    cc_log("veraoks_debug: curl downloaded %s to %s\n", manifest_url, dest);
-    return 0;
+    cc_log("veraoks_debug: curl downloaded %s to %s(return code=%d)", manifest_url, dest, curl_download_status);
+    return curl_download_status;
 }
 /*
  * Copy src to dest, decompressing src if needed. compress_level > 0 decides

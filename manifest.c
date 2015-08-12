@@ -619,7 +619,23 @@ manifest_get(struct conf *conf, const char *manifest_path)
 	uint32_t i;
 	struct file_hash *fh = NULL;
 
-	fd = open(manifest_path, O_RDONLY | O_BINARY);
+    // curl_download_file(const char *src, const char *dest)
+    // We have to now download the manifest file from webserver,
+    // to the ccache temp dir, and then pass the temporary path to
+    // further actions, as we won't have these files in the local dir.
+
+
+    char *temp_path;
+    temp_path = conf->temporary_dir;
+    if (str_eq(temp_path, "")) {
+        temp_path = format("%s/tmp", conf->cache_dir);
+    }
+
+	char *curl_manifest_path = format("%s/%s", temp_path, basename(manifest_path) );
+
+    cc_log("Mapping file system manifest path %s to the web server path and downloading to %s", manifest_path, curl_manifest_path);
+    curl_download_file(manifest_path, curl_manifest_path);
+	fd = open(curl_manifest_path, O_RDONLY | O_BINARY);
 	if (fd == -1) {
 		/* Cache miss. */
 		cc_log("No such manifest file");
@@ -780,6 +796,7 @@ manifest_dump(const char *manifest_path, FILE *stream)
 	bool ret = false;
 	unsigned i, j;
 
+    cc_log("veraoks_debug: opening manifest %s", manifest_path);
 	fd = open(manifest_path, O_RDONLY | O_BINARY);
 	if (fd == -1) {
 		fprintf(stderr, "No such manifest file: %s\n", manifest_path);

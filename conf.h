@@ -33,6 +33,7 @@ struct conf {
 	bool unify;
 
 	const char **item_origins;
+    char *cache_repo_path;
 };
 
 struct conf *conf_create(void);

@@ -694,8 +694,7 @@ put_file_in_cache(const char *source, const char *dest)
 		x_unlink(dest);
 		ret = link(source, dest);
 	} else {
-		//ret = copy_file(source, dest, conf->compression); //veraoks_debug
-		ret = curl_download_file(source, dest, conf->compression);
+		ret = copy_file(source, dest, conf->compression); //veraoks_debug
 	}
 	if (ret != 0) {
 		cc_log("Failed to %s %s to %s: %s",
@@ -725,8 +724,11 @@ get_file_from_cache(const char *source, const char *dest)
 		x_unlink(dest);
 		ret = link(source, dest);
 	} else {
-		//ret = copy_file(source, dest, 0); //veraoks_debug
-		ret = curl_download_file(source, dest, 0);
+        if ( ( conf->read_only || conf->read_only_direct ) &&
+                conf->cache_repo_path )
+		    ret = curl_download_file(source, dest);
+        else
+		    ret = copy_file(source, dest, 0); //veraoks_debug
 	}
 
 	if (ret == -1) {
@@ -1565,10 +1567,19 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	}
 
 	/* Check if the object file is there. */
-	if (stat(cached_obj, &st) != 0) {
-		cc_log("Object file %s not in cache", cached_obj);
+	/*if (stat(cached_obj, &st) != 0) {
+		cc_log("Object file %s not in cache", cached_obj); //TODO: veraoks_debu replace this with curl_download to /dev/null
 		return;
-	}
+	}*/
+    // i.e we download the file via curl to the actual workspace
+    // if file is not found in the webserver, curl returns -1, and we 
+    // return to running real compiler.
+    if ( curl_download_file(cached_obj, output_obj) == 0 ) {
+        stat(output_obj, &st);
+    } else {
+        cc_log("cached_obj %s not found in webserver", cached_obj);
+        return;
+    }
 
 	/* Check if the diagnostic file is there. */
 	if (output_dia && stat(cached_dia, &st) != 0) {
@@ -1582,7 +1593,7 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	 */
 	if (st.st_size == 0) {
 		cc_log("Invalid (empty) object file %s in cache", cached_obj);
-		x_unlink(cached_obj);
+		x_unlink(output_obj);
 		return;
 	}
 
@@ -1592,25 +1603,26 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	 */
 	produce_dep_file = generating_dependencies && mode == FROMCACHE_DIRECT_MODE;
 
-	/* If the dependency file should be in the cache, check that it is. */
-	if (produce_dep_file && stat(cached_dep, &st) != 0) {
-		cc_log("Dependency file %s missing in cache", cached_dep);
-		return;
-	}
+    if ( curl_download_file(cached_dep, output_dep) == 0 ) {
+        stat(output_dep, &st);
+    } else {
+        cc_log("cached_dep %s not found in webserver", cached_dep);
+        return;
+    }
 
-	if (!str_eq(output_obj, "/dev/null")) {
-		get_file_from_cache(cached_obj, output_obj);
-	}
-	if (produce_dep_file) {
-		get_file_from_cache(cached_dep, output_dep);
-	}
-	if (generating_coverage && stat(cached_cov, &st) == 0 && st.st_size > 0) {
-		/* gcc won't generate notes if there is no code */
+	//if (!str_eq(output_obj, "/dev/null")) {
+	//	get_file_from_cache(path, output_obj);
+        // Notice that here we are still calling get_file_from_cache
+        // but path will have the tempdir/%/*.o path and that file gets
+        // copied over to the output_obj path which is in workspace.
+	//}
+	/*if (generating_coverage && stat(cached_cov, &st) == 0 && st.st_size > 0) {
+		// gcc won't generate notes if there is no code 
 		get_file_from_cache(cached_cov, output_cov);
-	}
+	} 
 	if (output_dia) {
 		get_file_from_cache(cached_dia, output_dia);
-	}
+	} */
 
 	/* Update modification timestamps to save files from LRU cleanup.
 	   Also gives files a sensible mtime when hard-linking. */

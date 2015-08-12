@@ -327,6 +327,7 @@ conf_create(void)
 	conf->temporary_dir = x_strdup("");
 	conf->umask = UINT_MAX; /* default: don't set umask */
 	conf->unify = false;
+	conf->cache_repo_path = x_strdup("");
 	conf->item_origins = x_malloc(CONFITEMS_TOTAL_KEYWORDS * sizeof(char *));
 	for (i = 0; i < CONFITEMS_TOTAL_KEYWORDS; ++i) {
 		conf->item_origins[i] = "default";
@@ -351,6 +352,7 @@ conf_free(struct conf *conf)
 	free(conf->prefix_command);
 	free(conf->temporary_dir);
 	free(conf->item_origins);
+	free(conf->cache_repo_path);
 	free(conf);
 }
 
@@ -524,6 +526,9 @@ conf_print_items(struct conf *conf,
 
 	reformat(&s, "base_dir = %s", conf->base_dir);
 	printer(s, conf->item_origins[find_conf("base_dir")->number], context);
+
+	reformat(&s, "cache_repo_path = %s", conf->cache_repo_path);
+	printer(s, conf->item_origins[find_conf("cache_repo_path")->number], context);
 
 	reformat(&s, "cache_dir = %s", conf->cache_dir);
 	printer(s, conf->item_origins[find_conf("cache_dir")->number], context);
