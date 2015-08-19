@@ -282,7 +282,7 @@ curl_download_file(const char *src, const char *dest)
     strcat(manifest_url, base_url);
     strcat(manifest_url, manifest_path);
 
-    cc_log("veraoks_debug: curl downloading %s to %s\n", manifest_url, dest);
+    cc_log("veraoks_debug: curl download %s to %s\n", manifest_url, dest);
 
     CURL *curl;
     FILE *fp;
@@ -302,7 +302,6 @@ curl_download_file(const char *src, const char *dest)
         curl_easy_cleanup(curl);
         fclose(fp);
     }
-    cc_log("veraoks_debug: curl downloaded %s to %s(return code=%d)", manifest_url, dest, curl_download_status);
     return curl_download_status;
 }
 /*

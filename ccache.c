@@ -714,6 +714,9 @@ put_file_in_cache(const char *source, const char *dest)
 }
 
 /* Copy or link a file from the cache. */
+// THIS FUNCTION IS NOT CALLED AT ALL.
+// REPLACED WITH EQUIVALANY CURL CALLS in
+// curl_download_file directly to from_cache function.
 static void
 get_file_from_cache(const char *source, const char *dest)
 {
@@ -1603,11 +1606,13 @@ from_cache(enum fromcache_call_mode mode, bool put_object_in_manifest)
 	 */
 	produce_dep_file = generating_dependencies && mode == FROMCACHE_DIRECT_MODE;
 
-    if ( curl_download_file(cached_dep, output_dep) == 0 ) {
-        stat(output_dep, &st);
-    } else {
-        cc_log("cached_dep %s not found in webserver", cached_dep);
-        return;
+    if ( produce_dep_file ) {
+        if ( curl_download_file(cached_dep, output_dep) == 0 ) {
+            stat(output_dep, &st);
+        } else {
+            cc_log("cached_dep %s not found in webserver", cached_dep);
+            return;
+     }
     }
 
 	//if (!str_eq(output_obj, "/dev/null")) {
