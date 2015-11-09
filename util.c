@@ -282,26 +282,29 @@ curl_download_file(const char *src, const char *dest)
     strcat(manifest_url, base_url);
     strcat(manifest_url, manifest_path);
 
-    cc_log("veraoks_debug: curl download %s to %s\n", manifest_url, dest);
-
     CURL *curl;
     FILE *fp;
     CURLcode res;
+    curl_global_init(CURL_GLOBAL_DEFAULT);
+    curl_global_init(CURL_GLOBAL_DEFAULT);
     curl = curl_easy_init();
+    CURLcode curl_res;
 
     if ( curl ) {
         fp = fopen(dest, "wb");
         curl_easy_setopt(curl, CURLOPT_URL, manifest_url);
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
-        res = curl_easy_perform(curl);
-        if ( res == 78 ) {
-            // CURLE_REMOTE_FILE_NOT_FOUND file not found, that is.
+	curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L); 
+        curl_res = curl_easy_perform(curl);
+        if ( curl_res != CURLE_OK ) {
+            // something went wrong with curl download
             curl_download_status = -1;
         }
         curl_easy_cleanup(curl);
         fclose(fp);
     }
+    cc_log("veraoks_debug: curl download %s to %s(returned= %d)\n", manifest_url, dest, curl_download_status);
     return curl_download_status;
 }
 /*

@@ -634,7 +634,10 @@ manifest_get(struct conf *conf, const char *manifest_path)
 	char *curl_manifest_path = format("%s/%s", temp_path, basename(manifest_path) );
 
     cc_log("Mapp %s to the webserver path, downloading to %s", manifest_path, curl_manifest_path);
-    curl_download_file(manifest_path, curl_manifest_path);
+    if ( curl_download_file(manifest_path, curl_manifest_path) != 0 ) {
+		cc_log("No such manifest file");
+		goto out;
+    }
 	fd = open(curl_manifest_path, O_RDONLY | O_BINARY);
 	if (fd == -1) {
 		/* Cache miss. */
@@ -680,6 +683,7 @@ out:
 		free_manifest(mf);
 	}
 	x_unlink(curl_manifest_path);
+
 	return fh;
 }
 
