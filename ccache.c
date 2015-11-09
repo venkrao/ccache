@@ -1785,6 +1785,27 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			goto out;
 		}
 
+               if (str_startswith(argv[i], "@")) {
+                       cc_log("@file argument found");
+                       char *relpath = make_relative_path(x_strdup(argv[i] + 1));
+                       char *option = format("@%s", relpath);
+                       args_add(stripped_args, option);
+                       free(relpath);
+                       free(option);
+                       continue;
+               }
+               if (str_startswith(argv[i], "-@")) {
+                       cc_log("-@file argument found");
+                       char *relpath = make_relative_path(x_strdup(argv[i] + 2));
+                       char *option = format("-@%s", relpath);
+                       args_add(stripped_args, option);
+                       free(relpath);
+                       free(option);
+                       continue;
+               }
+
+
+
 		/* Handle "@file" argument. */
 		if (str_startswith(argv[i], "@") || str_startswith(argv[i], "-@")) {
 			char *argpath = argv[i] + 1;
@@ -2016,6 +2037,19 @@ cc_process_args(struct args *args, struct args **preprocessor_args,
 			free(option);
 			continue;
 		}
+               if (str_startswith(argv[i], "-B/")) {
+                       /* Handle the -Bprefix option, if prefix path comes from inside base_dir,
+                       for example, compiler is accessed via symbolic links from the build
+                       sandbox, then, we should change it to its relative path. */
+
+                       char *relpath = make_relative_path(x_strdup(argv[i] + 2));
+                       char *option = format("-B%s", relpath);
+                       args_add(stripped_args, option);
+                       free(relpath);
+                       free(option);
+                       continue;
+               }
+
 		if (str_startswith(argv[i], "-Wp,")) {
 			if (str_eq(argv[i], "-Wp,-P") || strstr(argv[i], ",-P,")) {
 				/* -P removes preprocessor information in such a way that the object
