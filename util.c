@@ -284,6 +284,16 @@ curl_download_file(const char *src, const char *dest)
     char *base_url = conf->cache_repo_path;
     char manifest_path[150];
     char manifest_url[250];
+    char *dest_curl[1000];
+    if (dest[0] != '/') {
+	printf("destination path is not absolute.. changing it to relative\n");
+	dest_curl[0] = '\0';
+	strcat(dest_curl, get_cwd());
+	strcat(dest_curl, "/");
+	strcat(dest_curl, dest);
+	printf("absolute destination path of %s is %s\n", dest, dest_curl);
+	dest = dest_curl;
+    }
 
     int curl_download_status = 0;
     manifest_url[0] = '\0';
