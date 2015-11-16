@@ -21,6 +21,16 @@
 
 #include <zlib.h>
 
+/////////////
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
+#include <error.h>
+#include <string.h>
+
+////////////
+
 #ifdef HAVE_PWD_H
 #include <pwd.h>
 #endif
@@ -270,7 +280,7 @@ size_t write_data(void *ptr, size_t size, size_t nmemb, FILE *stream) {
 int
 curl_download_file(const char *src, const char *dest)
 {
-	extern struct conf *conf;
+    extern struct conf *conf;
     char *base_url = conf->cache_repo_path;
     char manifest_path[150];
     char manifest_url[250];
@@ -281,29 +291,64 @@ curl_download_file(const char *src, const char *dest)
     strncpy(manifest_path, &src[strlen(conf->cache_dir)], strlen(src) - strlen(conf->cache_dir) + 1);
     strcat(manifest_url, base_url);
     strcat(manifest_url, manifest_path);
+cc_log("==============manifest_url = %s", manifest_url);
+cc_log("==============manifest_dest = %s", dest);
 
-    CURL *curl;
-    FILE *fp;
-    CURLcode res;
-    curl_global_init(CURL_GLOBAL_DEFAULT);
-    curl_global_init(CURL_GLOBAL_DEFAULT);
-    curl = curl_easy_init();
-    CURLcode curl_res;
 
-    if ( curl ) {
-        fp = fopen(dest, "wb");
-        curl_easy_setopt(curl, CURLOPT_URL, manifest_url);
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
-        curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
-	curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L); 
-        curl_res = curl_easy_perform(curl);
-        if ( curl_res != CURLE_OK ) {
-            // something went wrong with curl download
-            curl_download_status = -1;
-        }
-        curl_easy_cleanup(curl);
-        fclose(fp);
+//////////////////////////////////////////////////////////
+    int sockfd, portno, n;
+
+    struct sockaddr_in serv_addr;
+    struct hostent *server;
+    //char *file_to_download;
+
+    char buffer[256];
+    portno = 45695;
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sockfd < 0)
+        perror("ERROR opening socket");
+    server = gethostbyname("localhost");
+    if (server == NULL) {
+        fprintf(stderr,"ERROR, no such host\n");
+        exit(0);
     }
+cc_log("================2");
+    bzero((char *) &serv_addr, sizeof(serv_addr));
+    serv_addr.sin_family = AF_INET;
+    bcopy((char *)server->h_addr,
+         (char *)&serv_addr.sin_addr.s_addr,
+         server->h_length);
+    serv_addr.sin_port = htons(portno);
+    if (connect(sockfd,(struct sockaddr *)&serv_addr,sizeof(serv_addr)) < 0)
+        perror("ERROR connecting");
+    //file_to_download = argv[3];
+
+    size_t length = strlen(manifest_url) + 1;
+    uint32_t packet_size = htonl(length);
+    cc_log("sending manifest_url\n");
+    n = write(sockfd, &packet_size, sizeof(int) );
+    n = write(sockfd, manifest_url, length);
+    if (n < 0)
+         perror("ERROR writing manifest_url to socket");
+
+// GREEN ////////
+    length = strlen(dest) + 1;
+    packet_size = htonl(length);
+    cc_log("sending destination path\n");
+    n = write(sockfd, &packet_size, sizeof(int));
+    n = write(sockfd, dest, length);
+    if (n < 0)
+         perror("ERROR writing download destination to socket");
+    cc_log("sent dest_path\n");
+
+    n = read(sockfd, &curl_download_status, sizeof(int));
+    if (n < 0)
+         perror("ERROR reading from socket");
+    //printf("Result: %d\n",buffer);
+    curl_download_status = ntohl(curl_download_status);
+
+/////////////////////////////////////////////////////////
+
     cc_log("veraoks_debug: curl download %s to %s(returned= %d)\n", manifest_url, dest, curl_download_status);
     return curl_download_status;
 }
